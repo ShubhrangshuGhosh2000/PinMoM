@@ -2,7 +2,6 @@
 Official repository of the paper "_Enhancing protein interaction design through Monte Carlo Simulation with learning-based interaction score, AlphaFold, and KAN-based Positive-Unlabeled learning_". We are in the process of checking in the relevant files.
 
 ### TODO
-****
 - Add environment.yml file.
 - Remove irrelevant files from the 'codebase' folder.
 - Remove irrelevant root_path expression from all the files.
