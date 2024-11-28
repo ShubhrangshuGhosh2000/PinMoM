@@ -1,0 +1,132 @@
+# Define the TemperatureScheduler class
+class TemperatureScheduler():
+    """
+    Class for scheduling the temperature parameter used as a part of Metropolis criterion in Monte Carlo simulation during protein design through interaction procedure.
+    """
+    def __init__(self, initial_temp_sch, temp_inc_step_sch, temp_dec_step_sch, patience_for_inc_sch, patience_for_dec_sch, cooldown_sch, min_temp_sch, max_temp_sch, verbose=False):
+        """
+        Initialize TemperatureScheduler. it continuously monitors the PPI confidence score (which is a probability value between 0.0 and 1.0). If the probability value is not increasing for certain number of iterations, it increases the temperature by a given amount to encourage exploration of the conformational space. Conversely, if the probability value is increasing for certain number of iterations then it decreases the temperature to focus/exploit on sampling high-probability states.
+
+        Args:
+            initial_temp_sch (float): Initial temperature value for the scheduler.
+            temp_inc_step_sch (float): Step by which the temperature is increased in the temperature scheduler.
+            temp_dec_step_sch (float): Step by which the temperature is decresed in the temperature scheduler.
+            patience_for_inc_sch (int): Number of iterations with no probability increase (i.e. probability continuously decreases) before increasing the temperature by scheduler.
+            patience_for_dec_sch (int): Number of iterations with no probability decrese (i.e. probability continuously increases) before decreasing temperature by scheduler.
+            cooldown_sch (int): Number of iterations to wait before resuming normal scheduling operation after temperature change.
+            min_temp_sch (float): Lower bound on temperature for the temperature scheduler.
+            max_temp_sch (float): Upper bound on temperature for the temperature scheduler.
+            verbose_sch (bool): Whether to enable verbose output from temperature scheduler.
+        """
+        self.temp = initial_temp_sch
+        self.temp_inc_step_sch = temp_inc_step_sch
+        self.temp_dec_step_sch = temp_dec_step_sch
+        self.patience_for_inc_sch = patience_for_inc_sch
+        self.patience_for_dec_sch = patience_for_dec_sch
+        self.cooldown_sch = cooldown_sch
+        self.min_temp_sch = min_temp_sch
+        self.max_temp_sch = max_temp_sch
+        self.verbose = verbose
+
+        # initialize a few counters to keep track of the prob values
+        self.cooldown_wait_count = 0  # to keep track of the cooldown_sch
+        self.consecu_prob_increase_count = 0  # to keep track of the patience_for_dec_sch
+        self.consecu_prob_decrease_count = 0  # to keep track of the patience_for_inc_sch
+        self.prv_prob = 0.0  # to decide about consecutive increase or decrease of prob value
+
+
+    def adjust_temperature(self, crnt_prob):
+        """
+        Adjust temperature based on current probability value.
+
+        Args:
+            crnt_prob (float): current probability value.
+
+        Returns:
+            float: Adjusted temperature.
+        """
+        # First checks for the cooldown
+        if(self.cooldown_wait_count < self.cooldown_sch):
+            # still in the cooldown phase, hence just return the current temeprature
+            if self.verbose:  print(f"Still in the cooldown phase as cooldown_wait_count ({self.cooldown_wait_count + 1}) <= cooldown_sch ({self.cooldown_sch})")
+            self.cooldown_wait_count += 1
+            # just update self.prv_prob as it will be required when cooldown wait is over
+            self.prv_prob = crnt_prob
+            return self.temp
+        # end of if block: if(self.cooldown_wait_count < self.cooldown_sch):
+
+        # update the counters based on the crnt_prob
+        if(crnt_prob >= self.prv_prob): 
+            # there is consecutive increase in prob value 
+            self.consecu_prob_increase_count += 1
+            self.consecu_prob_decrease_count = 0
+        else:
+            # there is consecutive decrease in prob value
+            self.consecu_prob_increase_count = 0
+            self.consecu_prob_decrease_count += 1
+        # end of if-else block
+        if self.verbose:  
+            print(f"\n ##### crnt_prob: {crnt_prob}; prv_prob: {self.prv_prob}")
+            print(f"##### consecu_prob_increase_count: {self.consecu_prob_increase_count}; consecu_prob_decrease_count: {self.consecu_prob_decrease_count}\n")
+        # Updates prv_prob
+        self.prv_prob = crnt_prob
+
+        if(self.consecu_prob_increase_count > self.patience_for_dec_sch):
+            # if the prob values continuously increase and consecu_prob_increase_count exceeds the patience for decrement (patience_for_dec_sch),
+            # then decrease the temperature to focus/exploit on sampling high-probability states
+            if self.verbose:
+                print(f'\n consecu_prob_increase_count ({self.consecu_prob_increase_count}) exceeds the patience for decrement ({self.patience_for_dec_sch})')
+                print(f" ans so, attempting to decrease the temperature...")
+            if((self.temp - self.temp_dec_step_sch) < self.min_temp_sch):
+                if self.verbose: print(f'Alas!! current temperature {self.temp} cannot be further reduced to {self.temp - self.temp_dec_step_sch} as it would be lower than the temperature lower bound ({self.min_temp_sch})')
+            else:
+                self.temp = self.temp - self.temp_dec_step_sch
+                if self.verbose: print(f"temperature is decreased to {self.temp}")
+            # end of if-else block
+            # reset all the counters
+            self.cooldown_wait_count = self.consecu_prob_increase_count = self.consecu_prob_decrease_count = 0
+        elif(self.consecu_prob_decrease_count > self.patience_for_inc_sch):
+            # if the prob values continuously decrease and consecu_prob_decrease_count exceeds the patience for increment (patience_for_inc_sch),
+            # then increase the temperature to encourage exploration of the conformational space
+            if self.verbose:  
+                print(f'\n consecu_prob_decrease_count ({self.consecu_prob_decrease_count}) exceeds the patience for increment ({self.patience_for_inc_sch})')
+                print(f" ans so, attempting to increase the temperature...")
+
+            if((self.temp + self.temp_inc_step_sch) > self.max_temp_sch):
+                if self.verbose: print(f'Alas!! current temperature {self.temp} cannot be further increased to {self.temp + self.temp_inc_step_sch} as it would be higher than the temperature upper bound ({self.max_temp_sch})')
+            else:
+                self.temp = self.temp + self.temp_inc_step_sch
+                if self.verbose: print(f"temperature is increased to {self.temp}")
+            # end of if-else block
+            # reset all the counters
+            self.cooldown_wait_count = self.consecu_prob_increase_count = self.consecu_prob_decrease_count = 0
+        # end of if-else block
+
+        return self.temp
+
+
+# Demo code to test TemperatureScheduler
+def main():
+    # Define parameters
+    initial_temp_sch = 1.0
+    temp_inc_step_sch = 0.05
+    temp_dec_step_sch = 0.05
+    patience_for_inc_sch = 3  # 200
+    patience_for_dec_sch = 3  # 200
+    cooldown_sch = 2  # 50
+    min_temp_sch = 0.1
+    max_temp_sch = 1.9
+    verbose = True
+
+    # Initialize TemperatureScheduler
+    scheduler = TemperatureScheduler(initial_temp_sch, temp_inc_step_sch, temp_dec_step_sch, patience_for_inc_sch, patience_for_dec_sch, cooldown_sch, min_temp_sch, max_temp_sch, verbose)
+
+    # Simulated iterations
+    prob_values = [0.8, 0.7, 0.75, 0.76, 0.74, 0.73, 0.72, 0.71, 0.7, 0.69]
+
+    # Simulate temperature adjustment based on crnt_prob values
+    for crnt_prob in prob_values:
+        scheduler.adjust_temperature(crnt_prob)
+
+if __name__ == "__main__":
+    main()
