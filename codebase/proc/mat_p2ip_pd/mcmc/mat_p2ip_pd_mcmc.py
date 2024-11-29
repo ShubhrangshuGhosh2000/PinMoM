@@ -7,25 +7,21 @@ sys.path.insert(0, str(path_root))
 
 from utils import dl_reproducible_result_util
 import copy
-import gc
 import math
 import multiprocessing
 import numpy as np
 import pandas as pd
 import random
-import shutil
 import time
 import torch
 
 from proc.mat_p2ip_DS.mat_p2ip_origMan_auxTlOtherMan import matpip_RunTests
-from utils import prot_design_util, PPIPUtils, interface_residue
+from utils import prot_design_util, PPIPUtils
 from utils import preproc_plm_util, PreprocessUtils
 from utils import feat_engg_manual_main_pd
 from dscript.commands import predict
 from dscript import pretrained
 from dscript import alphabets
-from sword2 import sword2
-from utils.mutation_number_adjuster import MutationNumberAdjuster
 
 
 def run_prot_design_simuln(**kwargs):
@@ -37,7 +33,7 @@ def run_prot_design_simuln(**kwargs):
     print('####################################')
     # Iterate over kwargs and raise ValueError if any of the input arguments (except a few) is None. Also print each keyword argument name and respective value.
     for arg_name, arg_value in kwargs.items():
-        if((arg_value is None) and (arg_name not in ['temperature_scheduler', 'resource_monitor', 'mutation_number_adjuster'])):
+        if((arg_value is None) and (arg_name not in ['resource_monitor'])):
             raise ValueError(f"Argument '{arg_name}' must be provided with a value.")
         print(f"'{arg_name}': {arg_value}")
     # end of for loop: for arg_name, arg_value in kwargs.items():
@@ -49,14 +45,9 @@ def run_prot_design_simuln(**kwargs):
     result_dump_dir = kwargs.get('result_dump_dir'); cuda_index = kwargs.get('cuda_index')
     use_psiblast_for_pssm = kwargs.get('use_psiblast_for_pssm'); psiblast_exec_path = kwargs.get('psiblast_exec_path')
     pdb_file_location = kwargs.get('pdb_file_location')
-    mut_only_at_intrfc_resid_idx = kwargs.get('mut_only_at_intrfc_resid_idx'); naccess_path = kwargs.get('naccess_path')
-    earlyStoppingCriteria_inst = kwargs.get('early_stop_checkpoint')
     fixed_temp_mcmc = kwargs.get('fixed_temp_mcmc')
-    temperatureScheduler_inst = kwargs.get('temperature_scheduler')
     resourceMonitor_inst = kwargs.get('resource_monitor')
-    mutationNumberAdjuster_inst = kwargs.get('mutation_number_adjuster')
     max_thrshld_for_num_of_mut_pts = kwargs.get('max_thrshld_for_num_of_mut_pts')
-    print('####################################')
 
     # use del x1, x2 and  gc.collect() as and when required
     aa_lst = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V']
@@ -75,28 +66,6 @@ def run_prot_design_simuln(**kwargs):
     print('\n################# Processing dimeric protein complex- End\n')
 
     chain_nm_pu_dict = {}
-    if(use_prot_unit and (not mut_only_at_intrfc_resid_idx)):
-        print(f'As "use_prot_unit" is True and "mut_only_at_intrfc_resid_idx" is False, calculating PU for chains ...')
-        # estimate num_pu
-        inp_file = os.path.join(pdb_file_location, f"{dim_prot_complx_nm}.pdb")
-        output_dir = os.path.join(root_path, "dataset/sword2_result")
-        # chain_nm_pu_dict contains chain name as key and correponding PU list as value
-        for pdb_chain_nm in pdb_chain_nm_lst:
-            print(f'\n########## Calculating PU for chain {pdb_chain_nm} - Start')
-            # invoking customized SWORD2 method for only PU calculation
-            last_lvl_PUs_lst = sword2.main(inp_file, pdb_chain_nm, output_dir)
-            chain_nm_pu_dict[pdb_chain_nm] = last_lvl_PUs_lst
-            print(f'########## Calculating PU for chain {pdb_chain_nm} - End')
-        # end of for loop: for pdb_chain_nm in pdb_chain_nm_lst:
-        print(f"\n chain_nm_pu_dict:\n {chain_nm_pu_dict}")
-
-    intrfc_resid_idx_dict = {}
-    if(mut_only_at_intrfc_resid_idx):
-        print(f'As "mut_only_at_intrfc_resid_idx" is True, finding interface residue index positions for dimer chains ...')
-        inp_pdb_file = os.path.join(pdb_file_location, f"{dim_prot_complx_nm}.pdb")
-        intrfc_resid_idx_dict = interface_residue.find_interface_residue_indices_for_dimer(root_path=root_path, pdb_file=inp_pdb_file
-                                                                                  , chain_nm_lst=pdb_chain_nm_lst, naccess_path=naccess_path)
-        print(f"intrfc_resid_idx_dict:\n {intrfc_resid_idx_dict}")
 
     print('\n################# One time model loading - Start\n')
     # ## RANDOM SEED IS ALREADY SET IN dl_reproducible_result_util import
@@ -149,11 +118,6 @@ def run_prot_design_simuln(**kwargs):
         print(f'\n{fix_mut_prot_id_tag}################# Processing batch size- Start\n')
         # Sets batch_size as it depends on the value of use_prot_unit (True/False) and mut_only_at_intrfc_resid_idx. If 'use_prot_unit' is True and 
         # 'mut_only_at_intrfc_resid_idx' is false, then 'batch_size' input argument value is ignored and batch_size is set to the number of PU.
-        if(use_prot_unit and (not mut_only_at_intrfc_resid_idx)):
-            print(f"{fix_mut_prot_id_tag}**** As use_prot_unit is True and mut_only_at_intrfc_resid_idx is False, 'batch_size' input argument value is ignored and batch_size is set to the number of PU.")
-            # set batch_size = num_pu for mut_prot_id
-            batch_size = len(chain_nm_pu_dict[mut_prot_id])
-            print(f'{fix_mut_prot_id_tag}latest batch_size = num_pu for mut_prot_id ({mut_prot_id}) = {batch_size}')
 
         # check for num_of_itr to be a multiple of batch_size
         if(num_of_itr % batch_size != 0):
@@ -168,7 +132,7 @@ def run_prot_design_simuln(**kwargs):
         print(f'\n{fix_mut_prot_id_tag}################# Creating fresh result_dump_dir- Start\n')
         # Create result_dump_dir for this iteration
         iter_spec_result_dump_dir = os.path.join(result_dump_dir, f'complex_{dim_prot_complx_nm}/fixed_{fixed_prot_id}_mut_{mut_prot_id}'
-                                                 , f'res_totItr{num_of_itr}_batchSz{batch_size}_percLnForMutPts{percent_len_for_calc_mut_pts}_pu{use_prot_unit}_mutIntrfc{mut_only_at_intrfc_resid_idx}')
+                                                 , f'res_totItr{num_of_itr}_batchSz{batch_size}_percLnForMutPts{percent_len_for_calc_mut_pts}_pu{use_prot_unit}')
         
         # Check whether result_dump_dir already exists. If exists, then skip this iteration
         if os.path.exists(iter_spec_result_dump_dir):
@@ -237,16 +201,10 @@ def run_prot_design_simuln(**kwargs):
         
         # deep-copy original instance of earlyStoppingCriteria_inst, temperatureScheduler_inst, resourceMonitor_inst to
         # use for each iteration of (fixed_prot_id, mut_prot_id) simulation
-        earlyStoppingCriteria_inst_dcopy, temperatureScheduler_inst_dcopy, resourceMonitor_inst_dcopy = None, None, None
-        mutationNumberAdjuster_inst_dcopy = None
+        resourceMonitor_inst_dcopy = None
 
-        earlyStoppingCriteria_inst_dcopy = copy.deepcopy(earlyStoppingCriteria_inst)
-        if(temperatureScheduler_inst is not None):
-            temperatureScheduler_inst_dcopy = copy.deepcopy(temperatureScheduler_inst)
         if(resourceMonitor_inst is not None):
             resourceMonitor_inst_dcopy = copy.deepcopy(resourceMonitor_inst)
-        if(mutationNumberAdjuster_inst is not None):
-            mutationNumberAdjuster_inst_dcopy = copy.deepcopy(mutationNumberAdjuster_inst)
 
         t_batch_init = time.time()
         for batch_idx in range(num_of_batches):
@@ -301,18 +259,6 @@ def run_prot_design_simuln(**kwargs):
                 
                 # set default range for the mutation as the entire mutating protein length
                 mut_seq_range = range(mut_prot_len)
-                if(use_prot_unit and (not mut_only_at_intrfc_resid_idx)):
-                    # Check for the index of the current PU out of PU list for mut_prot_id and
-                    # in this case, it is equal to 'itr' value of the enclosing for loop.
-                    # Then set mut_seq_range as the range of corresponding PU.
-                    seq_tuple_for_crnt_pu = chain_nm_pu_dict[mut_prot_id][itr]
-                    mut_seq_range = range(seq_tuple_for_crnt_pu[0] -1, seq_tuple_for_crnt_pu[1])
-
-                if(mut_only_at_intrfc_resid_idx):
-                    # Retrieve interface residue index positions for the current mutating chain 
-                    intrfc_resid_idx_lst_for_crnt_mut_chain = intrfc_resid_idx_dict[mut_prot_id]
-                    mut_seq_range = intrfc_resid_idx_lst_for_crnt_mut_chain
-                        
                 # Check if 'percent_len_for_calc_mut_pts' is negative. It can be negative only if 
                 # adjust_mutation_number() method of MutationNumberAdjuster class returns a negative 'percent_len_for_calc_mut_pts' and
                 # it happens only if 'fixed mutation number' strategy is active.
@@ -323,8 +269,6 @@ def run_prot_design_simuln(**kwargs):
                     # no_of_mut_points = randomly from 1 to (x% of length) for Full length 
                     #                    randomly from 1 to (x% of number of interfacing residues) for Interface
                     x_percent_of_mut_prot_len = int(percent_len_for_calc_mut_pts / 100.0 * mut_prot_len)
-                    if(mut_only_at_intrfc_resid_idx):
-                        x_percent_of_mut_prot_len = int(percent_len_for_calc_mut_pts / 100.0 * len(intrfc_resid_idx_lst_for_crnt_mut_chain))
 
                     # Handle the scenario when x_percent_of_mut_prot_len = 0 which may arise if mut_prot_len=36 (say) and percent_len_for_calc_mut_pts=2
                     if(x_percent_of_mut_prot_len < 1):
@@ -465,12 +409,6 @@ def run_prot_design_simuln(**kwargs):
             # treat min_value as p_i
             p_i = min_value
 
-            # if temperatureScheduler_inst_dcopy is not None, then use temperature scheduler to obtain the temperature to be used in Metropolis Criteria (if required).
-            # Note that irrepective of whether Metropolis Criteria step in MCMC is required for the current iteration, this temperature 
-            # scheduler instance needs to be called to keep track of the scheduling
-            if(temperatureScheduler_inst_dcopy != None):
-                t_mcmc = temperatureScheduler_inst_dcopy.adjust_temperature(p_i)
-
             print(f'\n\n{fix_mut_prot_id_tag} !!!! p_i = {p_i}\n\n')
 
             # if p_i is more stable compared to p_stable, accept p_i and make it p_stable
@@ -497,11 +435,6 @@ def run_prot_design_simuln(**kwargs):
             t8 = time.time()
             print(f'{fix_mut_prot_id_tag}batch_idx={batch_idx} :: MCMC :: time (in sec) for execution = {round(t8-t7, 3)}')
             # ############### execute MCMC (Monte Carlo simulation with Metropolis Criteria) algo -End ###############
-            
-            # Call adjust_mutation_number() method whose output will be used subsequently like 'percent_len_for_calc_mut_pts' will be used in the next batch and
-            # 'trigger_fixed_mut_num_mna' and 'enable_early_stopping_check' will be used below.
-            if(mutationNumberAdjuster_inst_dcopy != None):
-                percent_len_for_calc_mut_pts, trigger_fixed_mut_num_mna,  enable_early_stopping_check = mutationNumberAdjuster_inst_dcopy.adjust_mutation_number(crnt_prob_value=p_i, crnt_batch_indx=batch_idx)
 
             # if p_stable is changed then only create batch specific output
             if(p_stable_changed):
@@ -518,9 +451,6 @@ def run_prot_design_simuln(**kwargs):
                 # update prv_best_mutated_prot_seq
                 prv_best_mutated_prot_seq = mut_prot_fastas[min_val_index][1]
 
-                if(enable_early_stopping_check):
-                    # check for the early stopping criteria of batch iterations
-                    early_stop, early_stop_crit = earlyStoppingCriteria_inst_dcopy.check_early_stopping(p_i)
             # end of if block: if(p_stable_changed):
             print(f'\n{fix_mut_prot_id_tag}############# batch_idx={batch_idx} :: batch_size={batch_size} :: time (in sec) for specific batch execution = {round(t8-t1, 3)}\n')
             crit_lst.append(f'batch_idx_{batch_idx}'); exec_time_lst.append(round(t8-t1, 3))
@@ -574,17 +504,6 @@ def run_prot_design_simuln(**kwargs):
         print(f'\n *********\n :: {fix_mut_prot_id_tag}Total time for complete simulation execution :: time (in sec) for execution = {round(t_final - t_entire_init, 3)} \n*********\n')
         crit_lst.append('simuln_total_time'); exec_time_lst.append(round(t_final - t_entire_init, 3))
 
-        # Check for the condition of the batch iteration termination. Possible conditions are
-        # (a) Normal stopping - All batch iterations completed (b) Early stopping - Prob Not Improved and (c) Early stopping - Prob Threshold Crossed
-        end_condition = f'Normal stopping - All batch iterations ({num_of_batches}) completed'
-        if(early_stop):
-            if(early_stop_crit == 'NIM'):
-                end_condition = f'Early stopping - Prob Not Improved for {earlyStoppingCriteria_inst_dcopy.stopping_patience} batches'
-            elif(early_stop_crit == 'THC'):
-                end_condition = f'Early stopping - Prob Threshold ({earlyStoppingCriteria_inst_dcopy.prob_threshold}) crossed'
-        # end of if block: if(early_stop):
-        print(f'Iteration end condition: {end_condition}')
-
         # save time records
         time_df = pd.DataFrame({'criterion': crit_lst, 'time_in_sec': exec_time_lst})
         time_df.to_csv(os.path.join(iter_spec_result_dump_dir, 'time_records.csv'), index=False)
@@ -599,10 +518,6 @@ def run_prot_design_simuln(**kwargs):
         misc_info_lst.append('batch_total_time_in_sec'); misc_info_val_lst.append(round(t_final - t_batch_init, 3))
         # total number of iterations executed
         misc_info_lst.append('tot_num_itr_executed'); misc_info_val_lst.append((batch_idx + 1) * batch_size)
-        # iteration end-condition
-        misc_info_lst.append('batch_itr_end_cond'); misc_info_val_lst.append(end_condition)
-        # store PU related info
-        misc_info_lst.append('PU_number'); misc_info_val_lst.append(batch_size if(use_prot_unit and (not mut_only_at_intrfc_resid_idx)) else -1)
         # store max_cpu_cores_used, max_gpu_cores_used
         misc_info_lst.append('max_cpu_cores_used'); misc_info_val_lst.append(max_cpu_cores_used)
         misc_info_lst.append('max_gpu_cores_used'); misc_info_val_lst.append(max_gpu_cores_used)
