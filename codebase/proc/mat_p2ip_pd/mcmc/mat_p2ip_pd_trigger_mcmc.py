@@ -105,6 +105,9 @@ def trigger_experiment(root_path = './', user_input_dict=dict()):
     def_verbose_mon = False  # default value
     input_dict['verbose_mon'] = user_input_dict.get('verbose_mon', def_verbose_mon)
 
+    def_max_thrshld_for_num_of_mut_pts = 10  # default value
+    input_dict['max_thrshld_for_num_of_mut_pts'] = user_input_dict.get('max_thrshld_for_num_of_mut_pts', def_max_thrshld_for_num_of_mut_pts)
+
     resourceMonitor_inst = None
     if(input_dict['use_resource_monitor']):
         resourceMonitor_inst = ResourceMonitor(cuda_index=input_dict['cuda_index'], verbose_mon=input_dict['verbose_mon'])
@@ -120,7 +123,7 @@ def trigger_experiment(root_path = './', user_input_dict=dict()):
                                         , result_dump_dir=input_dict['result_dump_dir'], cuda_index=input_dict['cuda_index']
                                         , use_psiblast_for_pssm=input_dict['use_psiblast_for_pssm'], psiblast_exec_path=input_dict['psiblast_exec_path']
                                         , pdb_file_location=input_dict['pdb_file_location']
-                                        , resource_monitor=resourceMonitor_inst
+                                        , fixed_temp_mcmc=input_dict['fixed_temp_mcmc'], resource_monitor=resourceMonitor_inst
                                         , max_thrshld_for_num_of_mut_pts=input_dict['max_thrshld_for_num_of_mut_pts'])
         except Exception as ex:
             traceback.print_exc(file=sys.stdout)
@@ -129,10 +132,12 @@ def trigger_experiment(root_path = './', user_input_dict=dict()):
 
 
 
+
 if __name__ == '__main__':
     root_path = os.path.join('/project/root/directory/path/here')
 
     user_input_dict = {}
+    # dim_prot_complx_nm_lst_orig = ['2I25']
     dim_prot_complx_nm_lst_orig = ['2I25', '4Y7M', '5JMO', '5SV3', '6CWG', '6DBG', '1AVX', '1AY7', '1BUH', '1BVN']
     # ['2I25', '4Y7M', '5JMO', '5SV3', '6CWG', '6DBG', '1AVX', '1AY7', '1BUH', '1BVN', '1CLV', '1D6R', ..........................., etc.] 
     dim_prot_complx_nm_lst_done =   []
