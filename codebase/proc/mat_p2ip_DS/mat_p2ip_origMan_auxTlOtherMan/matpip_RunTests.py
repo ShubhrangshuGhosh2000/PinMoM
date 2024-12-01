@@ -30,13 +30,15 @@ def load_matpip_model(root_path):
     hyp['aux_oneDencodingsize'] = 2242
     model = MatP2ipNetworkModule(hyperParams=hyp)
     model.batchIdx = 0
-    human_full_model_loc = os.path.join(root_path, 'dataset/proc_data/mat_res_origMan_auxTlOtherMan_human/DS_human_full.out')
+    # human_full_model_loc = os.path.join(root_path, 'dataset/proc_data/mat_res_origMan_auxTlOtherMan_human/DS_human_full.out')
+    human_full_model_loc = os.path.join(root_path, 'path/for/matpip/human_full/model')
     model.loadModelFromFile(human_full_model_loc)
     return model
 
 
 def load_dscript_model(root_path):
-    modelPath = os.path.join(root_path, 'codebase/dscript/human_v1.sav')  
+    # modelPath = os.path.join(root_path, 'codebase/dscript/human_v1.sav')  
+    modelPath = os.path.join(root_path, 'path/for/dscript/human/model')  
     try:
         model = torch.load(modelPath).cuda()
         model.use_cuda = True
