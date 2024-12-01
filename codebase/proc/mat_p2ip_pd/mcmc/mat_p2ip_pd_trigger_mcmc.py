@@ -93,7 +93,7 @@ def trigger_experiment(root_path = './', user_input_dict=dict()):
     def_use_psiblast_for_pssm = False  # default value
     input_dict['use_psiblast_for_pssm'] = user_input_dict.get('use_psiblast_for_pssm', def_use_psiblast_for_pssm)
 
-    def_psiblast_exec_path = os.path.join('/path/to/psi/blast/executable')  # default value
+    def_psiblast_exec_path = os.path.join('specify/path/to/psi/blast/executable')  # default value
     input_dict['psiblast_exec_path'] = user_input_dict.get('psiblast_exec_path', def_psiblast_exec_path)
 
     def_fixed_temp_mcmc = 0.2  # default value

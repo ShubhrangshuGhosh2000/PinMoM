@@ -39,7 +39,7 @@ def trigger_experiment(root_path = './', user_input_dict=dict()):
     input_dict['use_prot_unit'] = user_input_dict.get('use_prot_unit', def_use_prot_unit)
     def_use_psiblast_for_pssm = False  
     input_dict['use_psiblast_for_pssm'] = user_input_dict.get('use_psiblast_for_pssm', def_use_psiblast_for_pssm)
-    def_psiblast_exec_path = os.path.join('/path/to/psi/blast/executable')  
+    def_psiblast_exec_path = os.path.join('specify/path/to/psi/blast/executable')  
     input_dict['psiblast_exec_path'] = user_input_dict.get('psiblast_exec_path', def_psiblast_exec_path)
     def_use_resource_monitor = True  
     input_dict['use_resource_monitor'] = user_input_dict.get('use_resource_monitor', def_use_resource_monitor)
