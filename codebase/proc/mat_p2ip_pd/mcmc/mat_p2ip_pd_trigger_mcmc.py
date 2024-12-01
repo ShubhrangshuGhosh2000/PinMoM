@@ -151,7 +151,7 @@ if __name__ == '__main__':
     user_input_dict['use_prot_unit'] = False  #
 
     user_input_dict['percent_len_for_calc_mut_pts_lst'] = [10]
-    user_input_dict['exec_mode_type'] = 'thorough'  # 'fast', 'thorough'
+    user_input_dict['exec_mode_type'] = 'thorough'
     user_input_dict['result_dump_dir'] = os.path.join(root_path, f'dataset/proc_data/demo_result')
     user_input_dict['fixed_temp_mcmc'] = 0.2
     user_input_dict['mut_only_at_intrfc_resid_idx'] = False

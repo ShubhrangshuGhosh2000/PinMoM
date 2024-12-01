@@ -1,10 +1,9 @@
 import sys
 from pathlib import Path
-path_root = Path(__file__).parents[2]  # upto 'codebase' folder
+path_root = Path(__file__).parents[2]  
 sys.path.insert(0, str(path_root))
-# print(sys.path)
-
 from proc.mat_p2ip_DS.SimpleTorchDictionaryDataset_mat import SimpleTorchDictionaryDataset
+
 
 class GenericNetworkModel(object):
     def __init__(self,hyp={},fullGPU=False,deviceType=None,numEpochs=100,batchSize=256,optType='Adam',lr=1e-2,momentum=0,minLr=1e-6,schedFactor=.1,schedPatience=2,schedThresh=1e-2,sched_cooldown=0,weightDecay=0,seed=1):
@@ -14,8 +13,6 @@ class GenericNetworkModel(object):
         self.seed = hyp.get('seed',seed)
         self.minLr = hyp.get('minLr',minLr)
         self.deviceType = hyp.get('deviceType',deviceType)
-
-        #move network runner properties into hyperparams list if needed
         hyp['batchSize'] = hyp.get('batchSize',batchSize)
         hyp['optType'] = hyp.get('optType',optType)
         hyp['lr'] = hyp.get('lr',lr)
@@ -27,7 +24,6 @@ class GenericNetworkModel(object):
         hyp['schedCooldown'] = hyp.get('schedCooldown',sched_cooldown)
         hyp['weightDecay'] = hyp.get('weightDecay',weightDecay)
         hyp['momentum'] = hyp.get('momentum',momentum)
-        
         self.model = None
 
 
@@ -55,8 +51,7 @@ class GenericNetworkModel(object):
     def loadModel(self,fname):
         self.loadModelFromFile(fname)
 
-
-    #train network
+    
     def fit(self,pairLst,classes,dataMatrix,oneDdataMatrix,validationPairs=None, validationClasses=None):
         self.genModel()
         dataset = SimpleTorchDictionaryDataset(dataMatrix,oneDdataMatrix,pairLst,classes,full_gpu=self.fullGPU,deviceType=self.deviceType)
@@ -66,22 +61,19 @@ class GenericNetworkModel(object):
             validDataset = SimpleTorchDictionaryDataset(dataMatrix,validationPairs,validationClasses,full_gpu=self.fullGPU,deviceType=self.deviceType)
             self.model.trainWithValidation(dataset,validDataset,self.numEpochs,seed=self.seed,min_lr=self.minLr)
 
-
-    #predict on network
+    
     def predict_proba(self,pairLst,dataMatrix,oneDdataMatrix):
         dataset = SimpleTorchDictionaryDataset(dataMatrix,oneDdataMatrix,pairLst)
         probs,loss = self.model.predict(dataset)
         return probs
 
-
-    #predict on network
+    
     def predict_proba_xai_DS(self,pairLst,dataMatrix,oneDdataMatrix,predictClasses,resultsFolderName):
         dataset = SimpleTorchDictionaryDataset(dataMatrix,oneDdataMatrix,pairLst,classData=predictClasses)
         probs,loss = self.model.predict_xai_DS(dataset,resultsFolderName)
         return probs
 
-
-    #predict on network
+    
     def predict_proba_pd(self,pairLst,dataMatrix,oneDdataMatrix):
         dataset = SimpleTorchDictionaryDataset(dataMatrix,oneDdataMatrix,pairLst)
         probs,loss = self.model.predict_pd(dataset)
