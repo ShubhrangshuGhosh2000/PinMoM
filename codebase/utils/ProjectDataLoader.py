@@ -3,9 +3,8 @@ import os
 import sys
 
 from pathlib import Path
-path_root = Path(__file__).parents[2]  # upto 'mat_p2ip_prj_working' folder
+path_root = Path(__file__).parents[2]
 sys.path.insert(0, str(path_root))
-# print(sys.path)
 
 import numpy as np
 

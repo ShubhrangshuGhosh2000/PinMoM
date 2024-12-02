@@ -1,19 +1,11 @@
 import sys, os
-
-# #add parent to path
-currentdir = os.path.dirname(os.path.realpath(__file__))
-# sys.path.append(currentdir)
-parentDir = os.path.dirname(currentdir) + '/'
-currentDir = currentdir+ '/'
-
 from pathlib import Path
 path_root = Path(__file__).parents[1]  # upto 'codebase' folder
 sys.path.insert(0, str(path_root))
 
 import gzip
 import torch
-from utils import PPIPUtils
-import shlex, subprocess
+import subprocess
 
 def readFasta(fname):
     if fname[-3:] == '.gz':
@@ -22,7 +14,6 @@ def readFasta(fname):
     else:
         gz = False
         f = open(fname)
-
     curProtID = ''
     curAASeq = ''
     retLst = []
@@ -56,23 +47,17 @@ def getAALookup():
 
 def loadAAData(aaIDs):
     AADict = getAALookup()
-    
-    #get aa index data given aaIDs
-    # aaIdx = open(currentdir+'/AAidx.txt')
     aaIdx = open(os.path.join(path_root, 'utils/AAidx.txt'))
     aaData = []
     for line in aaIdx:
         aaData.append(line.strip())
-        
     myDict = {}
     for idx in range(1,len(aaData)):
         data = aaData[idx].strip().split('\t')
         myDict[data[0]] = data[1:]
-
     AAProperty = []
     for item in aaIDs:
         AAProperty.append([float(j) for j in myDict[item]])
-    
     return AADict, aaIDs, AAProperty
 
 
@@ -82,12 +67,9 @@ def loadPairwiseAAData(aaIDs,AADict=None):
     AAProperty = []
     for item in aaIDs:
         if item == 'Grantham':
-            # f = open(currentdir+'/Grantham.txt')
             f = open(os.path.join(path_root, 'utils/Grantham.txt'))
         elif item == 'Schneider-Wrede':
-            # f = open(currentdir+'/Schneider-Wrede.txt')
             f = open(os.path.join(path_root, 'utils/Schneider-Wrede.txt'))
-        
         data = []
         colHeaders = []
         rowHeaders = []
@@ -106,15 +88,12 @@ def loadPairwiseAAData(aaIDs,AADict=None):
     return AADict, aaIDs, AAProperty
 
 
-#local descriptor 10
-#splits each protein sequence into 10 parts prior to computing sequence-based values
 def LDEncode10(fastas,uniqueString='_+_'):
     newFastas = []
     for item in fastas:
         name = item[0]
         st = item[1]
         intervals = [0,len(st)//4,len(st)//4*2,len(st)//4*3,len(st)]
-        mappings= []
         idx = 0
         for k in range(1,5):
             for i in range(0,5-k):
@@ -132,7 +111,6 @@ def LDEncode10(fastas,uniqueString='_+_'):
 def STDecode(values,parts=10,uniqueString='_+_'):
     #final data list
     valLst = []
-    #remap values to original proteins
     valDict = {}
     nameOrder= []
     for line in values:
@@ -151,7 +129,6 @@ def STDecode(values,parts=10,uniqueString='_+_'):
             valDict[realName] = [None]*parts
             nameOrder.append(realName)
         valDict[realName][idx] = line[1:]
-        
     #error checking, and return all data
     for item in nameOrder:
         a = [item] #name
@@ -169,7 +146,6 @@ def loadBlosum62():
     global blosumMatrix
     global blosumMap
     if blosumMatrix is None:
-        # f = open(currentdir+'/blosum62.txt')
         f = open(os.path.join(path_root, 'utils/blosum62.txt'))
         header = None
         blosumMatrix = []
@@ -188,43 +164,12 @@ def loadBlosum62():
 
 
 def genPSSM(name,sequence,folder,eVal=0.001,num_iters=2,database='uniprotSprotFull',numThreads=4,psiblast_exec_path='./'):
-    # database = os.path.join(folder, database)
+    
     # Set the environment variable 'BLASTDB' for the PSI-Blast execution (python equivalent of 'export BLASTDB=/psiblast/uniprot_db/path/here')
     os.environ['BLASTDB'] = folder
 
-    # PPIPUtils.makeDir(folder)
-    # try:
-    #     f = open(database+'.psq') #check to see if one of the database files exist
-    #     f.close()
-    # except:#make database
-    #     print('creating db')
-    #     uniprotLoc = PPIPUtils.getUniprotFastaLocations(False)[0] #get only the sprot database, not tremble
-    #     # ######### MUST RUN IN THE SAME SHELL WHERE THE PROGRAM WILL RUN TO SET THE makeblastdb AND psiblast PATH 
-    #     # export PATH=$PATH:/scratch/pralaycs/Shubh_Working_Remote/ncbi-blast-2.13.0+/bin
-    #     # echo $PATH
-    #     PPIPUtils.runLsts([['makeblastdb -in ' + uniprotLoc + ' -out '+database+' -dbtype prot']],[1])
-
-    # f = open(folder+'tmp_'+str(name)+'.fasta','w')
-    # f.write('>'+name+'\n'+sequence)
-    # f.close()
-    # PPIPUtils.runLsts([[psiblast_exec_path+'psiblast -db '+database+' -evalue '+str(eVal)+' -num_iterations '+str(num_iters)+' -out_ascii_pssm '+folder+name+'.pssm -query '+folder+'tmp_'+str(name)+'.fasta'+' -num_threads ' + str(numThreads)]],[1])
-    # os.remove(folder+'tmp_'+str(name)+'.fasta')
-
-    # For PSSM feature extraction
-    # =============================
-    # ######### MUST RUN IN THE SAME SHELL WHERE THE PROGRAM WILL RUN TO SET THE makeblastdb AND psiblast PATH 
-    # export PATH=$PATH:/scratch/pralaycs/Shubh_Working_Remote/ncbi-blast-2.13.0+/bin
-    # echo $PATH
-
-    # In the path "dataset/preproc_data/derived_feat/PSSM/" put the following files so that database creation
-    # using 'makeblastdb' command will not be required:
-    # uniprotSprotFull.pdb, uniprotSprotFull.phr, uniprotSprotFull.pin, uniprotSprotFull.pjs,
-    # uniprotSprotFull.pot, uniprotSprotFull.psq, uniprotSprotFull.ptf, uniprotSprotFull.pto
-
-    # query_sequence = ">query_sequence\nMAGAGVWLFARAVGALTVLLMILYLLIAFWNQAAAVV"
     query_sequence = f">query_sequence\n{sequence}"
     output_file = folder+name+'.pssm'
-    # print(f'\n {query_sequence} \n')
     
     psiblast_cmd = [
         f'{psiblast_exec_path}psiblast',
@@ -239,15 +184,12 @@ def genPSSM(name,sequence,folder,eVal=0.001,num_iters=2,database='uniprotSprotFu
         with open(output_file, 'w') as out_file:
             result = subprocess.run(psiblast_cmd, input=query_sequence, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
-        # Check for errors in the PSI-BLAST execution
         if result.returncode != 0:
             print(f"Error running PSI-BLAST: {result.stderr}")
             raise Exception(f"Error running PSI-BLAST: {result.stderr}")
         
-        # Check for hits in the output
         output_lines = result.stdout.split('\n')
         if('***** No hits found *****' in output_lines):
-            # No hits found
             raise Exception(f"No hits found")
 
     except Exception as e:
@@ -263,9 +205,7 @@ def loadPSSM(name,sequence,folder,letters='ARNDCQEGHILKMFPSTWYV',secondEntry=Fal
     letterLookup = {}
     for item in letters:
         letterLookup[item] = len(letterLookup)
-    # try:
-    #     f = open(folder+name+'.pssm')
-    # except:
+
     if usePSIBlast:
         genPSSM(name,sequence,folder,eVal,num_iters,database,numThreads,psiblast_exec_path)
     try:
@@ -274,9 +214,7 @@ def loadPSSM(name,sequence,folder,letters='ARNDCQEGHILKMFPSTWYV',secondEntry=Fal
         #if psiblast finds no hits, for now, use log odds from blosum matrix
         # print('no hits',folder,name,sequence)
         blosumHeader = 'ARNDCQEGHILKMFPSTWYVBZX*'
-        # blosum = loadBlosum62()
-        # blosum = blosumMatrix if(blosumMatrix is not None) else loadBlosum62()
-        blosum = blosumMatrix  # above line is more logical but this line is faster
+        blosum = blosumMatrix
         for i in range(0,len(blosumHeader)):
             if blosumHeader[i] in letterLookup:
                 letterMap[letterLookup[blosumHeader[i]]] = i
@@ -316,7 +254,7 @@ def loadPSSM(name,sequence,folder,letters='ARNDCQEGHILKMFPSTWYV',secondEntry=Fal
     f.close()
     pssmMat = torch.tensor(pssmMat)
     finalLets = torch.tensor(letterMap)
-    finalLets[finalLets==-1] = pssmMat.shape[0]-1 #map unknown letters to zeros at end of matrix
+    finalLets[finalLets==-1] = pssmMat.shape[0]-1
     retMat = pssmMat[:,finalLets].tolist()
     return retMat
 
@@ -330,9 +268,7 @@ def calcBlosum62(name,sequence,letters='ARNDCQEGHILKMFPSTWYV',blosumMatrix=None)
     
     #use log odds from blosum matrix
     blosumHeader = 'ARNDCQEGHILKMFPSTWYVBZX*'
-    # blosum = loadBlosum62()
-    # blosum = blosumMatrix if(blosumMatrix is not None) else loadBlosum62()
-    blosum = blosumMatrix  # above line is more logical but this line is faster
+    blosum = blosumMatrix
     for i in range(0,len(blosumHeader)):
         if blosumHeader[i] in letterLookup:
             letterMap[letterLookup[blosumHeader[i]]] = i

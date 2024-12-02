@@ -13,7 +13,6 @@ use naccess -y, naccess -h or naccess -w to include HETATM records
 """
 
 import os
-# import tempfile
 import shutil
 import subprocess
 import warnings
@@ -61,9 +60,7 @@ def run_naccess(
     out, err = p.communicate()
     os.chdir(old_dir)
 
-    # rsa_file = temp_dir[:-4] + ".rsa"
     rsa_file = os.path.join(temp_dir, f'{prot_nm}.rsa')
-    # asa_file = temp_dir[:-4] + ".asa"
     asa_file = os.path.join(temp_dir, f'{prot_nm}.asa')
     # Alert user for errors
     if err.strip():
@@ -86,9 +83,6 @@ def run_naccess(
 def process_rsa_data(rsa_data):
     """Process the .rsa output file: residue level SASA data."""
     naccess_rsa_dict = {}
-    # The following index starts from 0 and increments by 1 everytime a new residue is considered.
-    # Please note that this index is not same as 'resseq' as read from the .rsa file.
-    # e.g. 2I25_chain_N.rsa file starts with 'resseq' value as 2 but 'seq_idx' would be initialized from 0.
     seq_idx = 0
     prv_chain_id = None
     for line in rsa_data:
@@ -143,17 +137,15 @@ def process_asa_data(rsa_data):
         naccess_atom_dict[id] = asa
     return naccess_atom_dict
 
+
 def validate_rsa_dict(chain_sequences_dict, chain_nm, rsa_dict):
-    # Extract the chain sequence from chain_sequences_dict for the given chain_nm
     chain_seq_frm_pdb = chain_sequences_dict[chain_nm]
-    # Create the chain sequence from the rsa_dict
     chain_seq_formation_lst = []
     for key, value in rsa_dict.items():
         chain_seq_formation_lst.append(value['res_short_name'])
     chain_seq_frm_rsa = ''.join(chain_seq_formation_lst)
     print(f'\nchain_seq_frm_pdb: {chain_seq_frm_pdb}')
     print(f'chain_seq_frm_rsa: {chain_seq_frm_rsa}\n')
-    # Validate whether chain_seq_frm_pdb and chain_seq_frm_rsa are same
     if(chain_seq_frm_pdb != chain_seq_frm_rsa):
         err_msg = f"Error!! Error!! chain_seq_frm_pdb amd chain_seq_frm_rsa are not same.\
               \n chain_seq_frm_pdb: {chain_seq_frm_pdb} \n chain_seq_frm_rsa: {chain_seq_frm_rsa}"
@@ -174,7 +166,6 @@ class NACCESS(AbstractResiduePropertyMap):
         property_dict = {}
         property_keys = []
         property_list = []
-        # Now create a dictionary that maps Residue objects to accessibility
         for chain in model:
             chain_id = chain.get_id()
             for res in chain:
@@ -208,7 +199,6 @@ class NACCESS_atomic(AbstractAtomPropertyMap):
         property_dict = {}
         property_keys = []
         property_list = []
-        # Now create a dictionary that maps Atom objects to accessibility
         for chain in model:
             chain_id = chain.get_id()
             for residue in chain:

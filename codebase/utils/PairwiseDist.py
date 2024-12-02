@@ -15,7 +15,6 @@ from utils.PreprocessUtils import loadPairwiseAAData
 #Also defaulting to AvgSq aggregation, for similar reason
 def PairwiseDist(fastas, pairwiseAAIDs, lag=30, separate=False, calcType='AvgSq', scaleType='Abs1', deviceType='cpu'):
     deviceType = 'cpu'
-    
     AA, AANames, AAData = loadPairwiseAAData(pairwiseAAIDs)
     for AAIdx in range(0,len(AAData)):
         featVals = torch.tensor(AAData[AAIdx]).to(deviceType)
@@ -35,25 +34,21 @@ def PairwiseDist(fastas, pairwiseAAIDs, lag=30, separate=False, calcType='AvgSq'
                 #divide by std  (std = square of mean norm, averaged, then apply sqrt)
                 featVals = featVals / (featVals.pow(2).mean().pow(.5))
         AAData[AAIdx] = featVals
-
     #return data
     retData = []
     #if seperate, keep row headers and data in seperate lists
     if separate or scaleType=='All':
         rawData = []
-        
     #add header
     header = ['protein']
     for item in AANames:
         for j in range(1,lag+1):
             header.append('d'+item+'_'+str(j))
-            
     if separate or scaleType=='All':
         retData.append([header[0]])
         rawData.append(header[1:])
     else:
         retData.append(header)
-
     for item in fastas:
         #protein name
         name = item[0]
@@ -69,25 +64,20 @@ def PairwiseDist(fastas, pairwiseAAIDs, lag=30, separate=False, calcType='AvgSq'
         for featIdx in range(0,len(AANames)):
             #get the feature data
             featVals = AAData[featIdx]
-            
             #for all lags, run calculations
             for j in range(1,lag+1):
                 idx0 = stIdx[:-j]
                 idx1 = stIdx[j:]
                 vals = featVals[idx0,idx1]
-                
                 if calcType == 'SumSq':
                     fastaVals.append((vals**2).sum().item())
                 elif calcType == 'AvgSq':
                     fastaVals.append((vals**2).mean().item())
-                
         if not separate and scaleType != 'All':
             retData.append(fastaVals)
         else:
             rawData.append(fastaVals[1:])
             retData.append([fastaVals[0]])
-        
     if separate:
         retData = (retData,rawData)
-        
     return retData

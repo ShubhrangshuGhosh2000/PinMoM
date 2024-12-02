@@ -186,35 +186,9 @@ class GenericModule(object):
 
     def loadEncodingFileWithPadding_pd(self,fixed_prot_id,man_2d_feat_dict_prot,maxProteinLength=1200,zeroPadding='right',returnLookup = False):
         zeroPadding = zeroPadding.lower()
-        # lookupMatrix = []
-        # f = open(fileName)
-        # for line in f:
-        #     line = line.strip()
-        #     if len(line)==0:
-        #         break #end of lookup matrix
-        #     lookupMatrix.append([float(k) for k in line.split(',')])
-        
-        # lookupMatrix = torch.tensor(lookupMatrix).long()
         lookupMatrix = man_2d_feat_dict_prot[fixed_prot_id]['SkipGramAA7']['lookupMatrix']
-
-        #lookup for protein name to row index mapping
         proteinNameMapping = {}
-        #list of aaIdx (list of tensors)
         aaIdxs = []
-        
-        # #grab all protein data, and map it to our matrix
-        # for line in f:
-        #     line = line.strip().split()
-        #     name = line[0]
-        #     aaIdx = torch.tensor([int(k) for k in line[1].split(',')]).long()
-        #     aaIdx = aaIdx[:maxProteinLength]
-        #     if name not in proteinNameMapping:
-        #         proteinNameMapping[name] = len(proteinNameMapping)
-        #         aaIdxs.append(aaIdx)
-        #     else:
-        #         aaIdxs[proteinNameMapping[name]] = aaIdx
-
-        #grab all protein data, and map it to our matrix
         for prot_id, indiv_prot_man_2d_feat_dict in man_2d_feat_dict_prot.items():
             name = prot_id
             aaIdx = indiv_prot_man_2d_feat_dict['SkipGramAA7']['aaIdxs'][0]
@@ -224,153 +198,73 @@ class GenericModule(object):
                 aaIdxs.append(aaIdx)
             else:
                 aaIdxs[proteinNameMapping[name]] = aaIdx
-        
-        #create a torch matrix, will be a 3D array of number of proteins, maxProteinLength, inSize
         dataMatrix = torch.zeros((len(proteinNameMapping),lookupMatrix.shape[1],maxProteinLength))
         for i in range(0,len(aaIdxs)):
-            
-            #3 dimension indexing:
-            #i,  -- protein index
-            #: -- lookupMatrix.shape[1]
-            #:x.shape[1],  -- protein length being assigned
-            
-            #each lookup row will be length lookupMatrix.shape[1], creating an N,lookupMatrix.shape[1] shaped matrix
-            #transpose to get N to the first dimension
             x = lookupMatrix[aaIdxs[i],:].T
             if zeroPadding == 'right':
                 dataMatrix[i,:,:x.shape[1]] = x
             elif zeroPadding == 'left':
-                #calculate gap in front of string
                 a = dataMatrix.shape[2]-x.shape[1]
                 dataMatrix[i,:,a:] = x
             elif zeroPadding == 'edges':
-                #calculate total gap
                 a = dataMatrix.shape[2]-x.shape[1]
-                #start at half gap
                 b = a//2
-                #end at half gap + sequence length
                 c = b + x.shape[1]
                 dataMatrix[i,:,b:c] = x
-        
-        # print('loaded ',dataMatrix.shape[0],'proteins')
         if not returnLookup:
             return proteinNameMapping, dataMatrix
         else:
             return proteinNameMapping, dataMatrix, lookupMatrix
 
-
-    # ##################################### added for the label-encoding purpose ###################################
+    
     def loadLabelEncodingFileWithPadding(self,fileName,maxProteinLength=1200,zeroPadding='right',returnLookup = False):
         zeroPadding = zeroPadding.lower()
-        lookupMatrix = []  # a list of list (each inner list contains 7 elements for one-hot encoding) 
+        lookupMatrix = []  
         f = open(fileName)
-        # ##### parsing the 1st part of 'LabelEncoding.encode' file
         for line in f:
             line = line.strip()
             if len(line)==0:
-                break #end of lookup matrix
+                break 
             lookupMatrix.append([float(k) for k in line.split(',')])
-        
-        lookupMatrix = torch.tensor(lookupMatrix).long()  # 2d tensor array with shape (7 x 7) 
-        
-        #lookup for protein name to row index mapping
+        lookupMatrix = torch.tensor(lookupMatrix).long()  
         proteinNameMapping = {}
-        #list of aaIdx (list of tensors)
         aaIdxs = []
-        
-        # ##### parsing the 2nd part of 'LabelEncoding.encode' file
-        #grab all protein data, and map it to our matrix
         for line in f:
             line = line.strip().split()
             name = line[0]
-            # changing the label-encoding range from 0-6 to 1-7
-            # aaIdx = torch.tensor([int(k) for k in line[1].split(',')]).long()  # for int label-encoding (range 0-6)
-            aaIdx = torch.tensor([int(k)+1 for k in line[1].split(',')]).long()  # for int label-encoding (range 1-7)
-            # ## aaIdx = torch.tensor([(int(k)+1)/7.0 for k in line[1].split(',')]).float()  # for normalized float label-encoding
+            aaIdx = torch.tensor([int(k)+1 for k in line[1].split(',')]).long()  
             aaIdx = aaIdx[:maxProteinLength]
             if name not in proteinNameMapping:
                 proteinNameMapping[name] = len(proteinNameMapping)
                 aaIdxs.append(aaIdx)
             else:
-                # if the name already exists in proteinNameMapping, then just override the content 
                 aaIdxs[proteinNameMapping[name]] = aaIdx
-        
-        #create a torch matrix, will be a 3D array of number of proteins, 1 (for label-encoding), maxProteinLength,
         dataMatrix = torch.zeros((len(proteinNameMapping),1,maxProteinLength))
         for i in range(0,len(aaIdxs)):
-            
-            #3 dimension indexing:
-            #i,  -- protein index
-            #: -- 1 (for label-encoding)
-            #:x.shape[1],  -- protein length being assigned
-            
-            #each lookup row will be length lookupMatrix.shape[1], creating an N,lookupMatrix.shape[1] shaped matrix
-            #transpose to get N to the first dimension
-            # x = lookupMatrix[aaIdxs[i],:].T
             x = aaIdxs[i].T
-            x = x.reshape(1, len(x))  # x.shape = (1, N)
-
+            x = x.reshape(1, len(x))  
             if zeroPadding == 'right':
                 dataMatrix[i,:,:x.shape[1]] = x
             elif zeroPadding == 'left':
-                #calculate gap in front of string
                 a = dataMatrix.shape[2]-x.shape[1]
                 dataMatrix[i,:,a:] = x
             elif zeroPadding == 'edges':
-                #calculate total gap
                 a = dataMatrix.shape[2]-x.shape[1]
-                #start at half gap
                 b = a//2
-                #end at half gap + sequence length
                 c = b + x.shape[1]
                 dataMatrix[i,:,b:c] = x
-        
-        # print('loaded ',dataMatrix.shape[0],'proteins')
         if not returnLookup:
             return proteinNameMapping, dataMatrix
         else:
             return proteinNameMapping, dataMatrix, lookupMatrix
 
-
-    # ##################################### added for the label-encoding purpose ###################################
+    
     def loadLabelEncodingFileWithPadding_pd(self,fixed_prot_id,man_2d_feat_dict_prot,maxProteinLength=1200,zeroPadding='right',returnLookup = False):
         zeroPadding = zeroPadding.lower()
-        lookupMatrix = []  # a list of lists (each inner list contains 7 elements for one-hot encoding) 
-        
-        # f = open(fileName)
-        # # ##### parsing the 1st part of 'LabelEncoding.encode' file
-        # for line in f:
-        #     line = line.strip()
-        #     if len(line)==0:
-        #         break #end of lookup matrix
-        #     lookupMatrix.append([float(k) for k in line.split(',')])
-        
-        # lookupMatrix = torch.tensor(lookupMatrix).long()  # 2d tensor array with shape (7 x 7) 
+        lookupMatrix = []  
         lookupMatrix = man_2d_feat_dict_prot[fixed_prot_id]['LabelEncoding']['lookupMatrix']
-
-        #lookup for protein name to row index mapping
         proteinNameMapping = {}
-        #list of aaIdx (list of tensors)
         aaIdxs = []
-        
-        # ##### parsing the 2nd part of 'LabelEncoding.encode' file
-        # #grab all protein data, and map it to our matrix
-        # for line in f:
-        #     line = line.strip().split()
-        #     name = line[0]
-        #     # changing the label-encoding range from 0-6 to 1-7
-        #     # aaIdx = torch.tensor([int(k) for k in line[1].split(',')]).long()  # for int label-encoding (range 0-6)
-        #     aaIdx = torch.tensor([int(k)+1 for k in line[1].split(',')]).long()  # for int label-encoding (range 1-7)
-        #     # ## aaIdx = torch.tensor([(int(k)+1)/7.0 for k in line[1].split(',')]).float()  # for normalized float label-encoding
-        #     aaIdx = aaIdx[:maxProteinLength]
-        #     if name not in proteinNameMapping:
-        #         proteinNameMapping[name] = len(proteinNameMapping)
-        #         aaIdxs.append(aaIdx)
-        #     else:
-        #         # if the name already exists in proteinNameMapping, then just override the content 
-        #         aaIdxs[proteinNameMapping[name]] = aaIdx
-
-        #grab all protein data, and map it to our matrix
         for prot_id, indiv_prot_man_2d_feat_dict in man_2d_feat_dict_prot.items():
             name = prot_id
             aaIdx = indiv_prot_man_2d_feat_dict['LabelEncoding']['aaIdxs'][0]
@@ -380,38 +274,20 @@ class GenericModule(object):
                 aaIdxs.append(aaIdx)
             else:
                 aaIdxs[proteinNameMapping[name]] = aaIdx
-        
-        #create a torch matrix, will be a 3D array of number of proteins, 1 (for label-encoding), maxProteinLength,
         dataMatrix = torch.zeros((len(proteinNameMapping),1,maxProteinLength))
         for i in range(0,len(aaIdxs)):
-            
-            #3 dimension indexing:
-            #i,  -- protein index
-            #: -- 1 (for label-encoding)
-            #:x.shape[1],  -- protein length being assigned
-            
-            #each lookup row will be length lookupMatrix.shape[1], creating an N,lookupMatrix.shape[1] shaped matrix
-            #transpose to get N to the first dimension
-            # x = lookupMatrix[aaIdxs[i],:].T
             x = aaIdxs[i].T
-            x = x.reshape(1, len(x))  # x.shape = (1, N)
-
+            x = x.reshape(1, len(x))  
             if zeroPadding == 'right':
                 dataMatrix[i,:,:x.shape[1]] = x
             elif zeroPadding == 'left':
-                #calculate gap in front of string
                 a = dataMatrix.shape[2]-x.shape[1]
                 dataMatrix[i,:,a:] = x
             elif zeroPadding == 'edges':
-                #calculate total gap
                 a = dataMatrix.shape[2]-x.shape[1]
-                #start at half gap
                 b = a//2
-                #end at half gap + sequence length
                 c = b + x.shape[1]
                 dataMatrix[i,:,b:c] = x
-        
-        # print('loaded ',dataMatrix.shape[0],'proteins')
         if not returnLookup:
             return proteinNameMapping, dataMatrix
         else:
@@ -419,57 +295,53 @@ class GenericModule(object):
 
 
     def scaleFeatures(self,features,scaleType):
-        print('scaling')
         if type(features) is dict:
-            return features #scaling dicts not supported, build own code in submodules
+            return features 
         if self.featScaleClass is not None:
             if scaleType == 'train':
                 self.scaleData = self.featScaleClass()
                 newFeatures = self.scaleData.fit_transform(features)
                 return newFeatures
-                
             else:
                 newFeatures = self.scaleData.transform(features)
                 return newFeatures
-                
         else:#no scaler, do nothing
             return features
+
 
     def setScaleFeatures(self,trainPairs):
         trainFeatures, trainClasses = self.genFeatureData(trainPairs,'train')
         trainFeatures = self.scaleFeatures(trainFeatures,'train')
     
+
     def train(self,trainPairs):
         trainFeatures, trainClasses = self.genFeatureData(trainPairs,'train')
         trainFeatures = self.scaleFeatures(trainFeatures,'train')
         self.fit(trainFeatures,trainClasses)
-        
+
+
     def fit(self,trainFeatures,trainClasses):
         self.genModel() #create a new model from scratch, ensuring we don't overwrite the previously trained one
         self.model.fit(trainFeatures,trainClasses)
 
 
-    #Predict using Full Data Method.  Assumes all data has been loaded to created test features, and that entire test dataset and features fit into memory
     def predictPairs(self, testPairs):
         testFeatures, testClasses = self.genFeatureData(testPairs,'predict')
         testFeatures = self.scaleFeatures(testFeatures,'test')
         return self.predict_proba(testFeatures,testClasses)
     
-    #Predict using Full Data Method.  Assumes all data has been loaded to created test features, and that entire test dataset and features fit into memory
+
     def predictPairs_pd(self, testPairs):
         testFeatures = self.genFeatureData_pd(testPairs,'predict')
-        # testFeatures = self.scaleFeatures(testFeatures,'test')
         return self.predict_proba_pd(testFeatures)
 
 
-    #Predict using Full Data Method.  Assumes all data has been loaded to created test features, and that entire test dataset and features fit into memory
     def predictPairs_xai_DS(self, testPairs, resultsFolderName):
         testFeatures, testClasses = self.genFeatureData(testPairs,'predict')
         testFeatures = self.scaleFeatures(testFeatures,'test')
         return self.predict_proba_xai_DS(testFeatures,testClasses,resultsFolderName)
 
 
-    #Predict using Full Data Method.  Assumes all data has been loaded to created test features, and that entire test dataset and features fit into memory
     def predictPairs_xai_humanBenchmark(self, testPairs, predictFileName):
         testFeatures, testClasses = self.genFeatureData(testPairs,'predict')
         testFeatures = self.scaleFeatures(testFeatures,'test')
@@ -486,7 +358,7 @@ class GenericModule(object):
             predictClasses.append(c)
         return (np.vstack(predictions),np.hstack(predictClasses))
         
-    #Way 3: File Method.  Assumes all data for testing cannot be loaded into memory at once, and instead parsed it from a file and tests it in batches
+
     def predictFromFile(self,testFile,batchSize,sep='\t',headerLines=1,classIdx=-1):
         predictions = []
         predictClasses = []
@@ -523,7 +395,6 @@ class GenericModule(object):
             line = line[:classIdx] + line[(classIdx+1):]
             line = [float(s) for s in line]
             curData.append(line)
-            
             if len(curData) == batch:
                 yield (header,curData,classData)
                 curData =[]

@@ -1,12 +1,9 @@
 import gc
 import sys, os
 from pathlib import Path
-path_root = Path(__file__).parents[1]  # upto 'codebase' folder
+path_root = Path(__file__).parents[1]
 sys.path.insert(0, str(path_root))
-# print(sys.path)
 
-from utils import dl_reproducible_result_util
-import numpy as np
 import re
 import torch
 from transformers import T5EncoderModel, T5Tokenizer
@@ -14,7 +11,6 @@ from transformers import T5EncoderModel, T5Tokenizer
 
 # load ProtTrans tl-model for the given type of model
 def load_protTrans_model(protTrans_model_path='./', protTrans_model_name = 'prot_t5_xl_uniref50', device='cpu'):
-    print("\n ################## loading protTrans model ##################")
     # 1. Load necessry libraries including huggingface transformers
     # from transformers import T5EncoderModel, T5Tokenizer
     # import gc
@@ -64,19 +60,11 @@ def extract_protTrans_plm_feat(prot_seq_lst=None, model=None, tokenizer=None, de
         seq_len = (attention_mask[seq_num] == 1).sum()
         prot_residue_embed = embedding[seq_num][:seq_len-1]
 
-        # apply pooling column-wise and return the resulting 1d array of fixed size (1024)
-        # prot_embed = np.apply_along_axis(np.median, axis=0, arr=prot_residue_embed)  # can apply np.mean/max/min etc. in place np.median
-
         # apply pooling column-wise and return the resulting 1d tensor of fixed size (1024) representing per-protein embedding
         plm_1d_embedd_tensor_lst.append(torch.quantile(prot_residue_embed.float(), q=0.5, dim=0))
-    # end of for loop: for seq_num in range(len(embedding)):
 
-    # print('inside extract_protTrans_plm_feat() method - End')
     return plm_1d_embedd_tensor_lst
-
-
 
 
 if __name__ == '__main__':
     root_path = os.path.join('/project/root/directory/path/here')
-    root_path = os.path.join('/scratch/pralaycs/Shubh_Working_Remote/PPI_Wkspc/PPI_Code/matpip_pd_prj')

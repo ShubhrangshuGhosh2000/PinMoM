@@ -11,7 +11,6 @@ from utils.CTD_Transition import CTD_Transition
 from utils.PreprocessUtils import LDEncode10, STDecode
 
 
-#default groups are based on conjoint triad method
 def LDCTD(fastas, encodeFunc=LDEncode10, groupings = ['AGV','ILFP','YMTS','HNQW','RK','DE','C'], deviceType='cpu'):
     if encodeFunc is not None:
         encoded, encodedSize = encodeFunc(fastas)

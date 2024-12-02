@@ -279,11 +279,6 @@ class NetworkRunner(object):
         for batch_idx, (data, classData) in enumerate(loader):
             if classData[0]!= -1:
                 classData = classData.to(self.deviceType)
-                # baseline = (torch.zeros(tuple(data[0].shape)).to(self.deviceType)  # protA: 2d_man_feat_shape: (N, 800, 46)
-                #             , torch.zeros(tuple(data[1].shape)).to(self.deviceType)  # protB: 2d_man_feat_shape: (N, 800, 46)
-                #             , torch.zeros(tuple(data[2].shape)).to(self.deviceType)  # auxProtA: 1d_tl_feat(1024) + 1d_man_feat(1218): (N, 2242)
-                #             , torch.zeros(tuple(data[3].shape)).to(self.deviceType)  # auxProtB: 1d_tl_feat(1024) + 1d_man_feat(1218): (N, 2242)
-                #             )
                 attributions = interpreter.attribute((data[0], data[1], data[2], data[3]), target=classData)
                 protA_man_2d_feat_attrbn = attributions[0]  # protA: man_2d_feat_shape: (N, 800, 46)
                 protB_man_2d_feat_attrbn = attributions[1]  # protB: man_2d_feat_shape: (N, 800, 46)
@@ -341,11 +336,6 @@ class NetworkRunner(object):
         for batch_idx, (data, classData) in enumerate(loader):
             if classData[0]!= -1:
                 classData = classData.to(self.deviceType)
-                # baseline = (torch.zeros(tuple(data[0].shape)).to(self.deviceType)  # protA: 2d_man_feat_shape: (N, 800, 46)
-                #             , torch.zeros(tuple(data[1].shape)).to(self.deviceType)  # protB: 2d_man_feat_shape: (N, 800, 46)
-                #             , torch.zeros(tuple(data[2].shape)).to(self.deviceType)  # auxProtA: 1d_tl_feat(1024) + 1d_man_feat(1218): (N, 2242)
-                #             , torch.zeros(tuple(data[3].shape)).to(self.deviceType)  # auxProtB: 1d_tl_feat(1024) + 1d_man_feat(1218): (N, 2242)
-                #             )
                 attributions = interpreter.attribute((data[0], data[1], data[2], data[3]), target=classData)
                 protA_man_2d_feat_attrbn = attributions[0]  # protA: man_2d_feat_shape: (N, 800, 46)
                 protB_man_2d_feat_attrbn = attributions[1]  # protB: man_2d_feat_shape: (N, 800, 46)

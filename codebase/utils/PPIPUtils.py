@@ -521,8 +521,6 @@ def downloadZipFile(downloadLocation, fileLocation):
 
 
 def getUniprotFastaLocations(getBoth=True):
-    # uniprotFastaLoc = currentdir+'/PPI_Datasets/uniprot_sprot.fasta.gz'
-    # uniprotFastaLoc2 = currentdir+'/PPI_Datasets/uniprot_trembl.fasta.gz'
     uniprotFastaLoc = os.path.join(path_root, 'utils', 'uniprot_sprot.fasta')
     uniprotFastaLoc2 = os.path.join(path_root, 'utils', 'uniprot_trembl.fasta')
     if not os.path.exists(uniprotFastaLoc):
@@ -567,13 +565,10 @@ def execute_unix_command(command):
     except subprocess.CalledProcessError as e:
         # If the command failed, retrieve the error message
         out = None; err = str(e)
-    # end of try-except block
     
     if err: 
         print("Error:", err) 
         raise Exception(str(err))
-    
-    # print("Output:", out)
     return out
 
 
