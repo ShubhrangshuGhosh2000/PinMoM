@@ -4,14 +4,12 @@ import torch
 from pathlib import Path
 path_root = Path(__file__).parents[1]  # upto 'codebase' folder
 sys.path.insert(0, str(path_root))
-# print(sys.path)
-import joblib
 
 from utils.PreprocessUtils import calcBlosum62
 
 def Blosum62(fastas, directory, blosumMatrix=None):
     # ######### MUST RUN THE FOLLOWING IN THE SAME SHELL WHERE THE PROGRAM WILL RUN TO SET THE makeblastdb AND psiblast PATH (see genBlosum62() method of PreprocessUtils.py)
-    # export PATH=$PATH:/scratch/pralaycs/Shubh_Working_Remote/ncbi-blast-2.13.0+/bin
+    # export PATH=$PATH:/specify/path/to/ncbi-blast-2.13.0+/bin
     # echo $PATH
     blosum62_dict = {}
     for ind in range(len(fastas)):
