@@ -1,5 +1,5 @@
 # PinMoM
-Official repository of the paper "_Enhancing protein interaction design through Monte Carlo Simulation with deep learning-based interaction score, AlphaFold, and KAN-based Positive-Unlabeled learning_". We are in the process of checking in the relevant files.
+Official repository of the paper "_Enhancing protein interaction design through Monte Carlo Simulation with deep learning-based interaction score, AlphaFold, and KAN-based Positive-Unlabeled learning_".
 
 - All experiments were conducted using a runtime infrastructure that utilizes a single machine equipped with 187 GB of RAM, a 16 GB GPU (Nvidia Tesla V100), and an Intel Xeon Gold 6148 CPU @ 2.40 GHz. The selection of machines for each experiment is based on the availability of a cluster with similar machine specifications.
 
