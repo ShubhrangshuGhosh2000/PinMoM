@@ -1,5 +1,5 @@
 # PinMoM
-Official repository of the paper "_Enhancing protein interaction design through Monte Carlo Simulation with learning-based interaction score, AlphaFold, and KAN-based Positive-Unlabeled learning_". We are in the process of checking in the relevant files.
+Official repository of the paper "_Enhancing protein interaction design through Monte Carlo Simulation with deep learning-based interaction score, AlphaFold, and KAN-based Positive-Unlabeled learning_". We are in the process of checking in the relevant files.
 
 ### TODO
 - Make it like MaTPIP.
