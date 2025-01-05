@@ -1,10 +1,6 @@
 # PinMoM
 Official repository of the paper "_Enhancing protein interaction design through Monte Carlo Simulation with deep learning-based interaction score, AlphaFold, and KAN-based Positive-Unlabeled learning_". We are in the process of checking in the relevant files.
 
-### TODO
-- Make it like MaTPIP.
-
-### TO BE PUT IN THE FINAL VERSION OF THE REPO
 - All experiments were conducted using a runtime infrastructure that utilizes a single machine equipped with 187 GB of RAM, a 16 GB GPU (Nvidia Tesla V100), and an Intel Xeon Gold 6148 CPU @ 2.40 GHz. The selection of machines for each experiment is based on the availability of a cluster with similar machine specifications.
 
 - We utilized a conda environment with Python 3.11.4 for code execution. The environment was created using the [py3114_torch_gpu_param.yml](https://github.com/ShubhrangshuGhosh2000/PinMoM/blob/main/py3114_torch_gpu_param.yml) file.
